@@ -14,7 +14,7 @@ async function api(url: string, method = 'GET', body?: unknown) {
   if (!response.ok) throw new Error(json.error || response.statusText);
   return json;
 }
-function showLogin() { clearCiToken(); keyboardCapture.blur(); screenBox.blur(); workspace.hidden = true; loginSection.hidden = false; $('connection').textContent = 'Sign-in required'; ws?.close(); ws = null; }
+function showLogin() { clearCiToken(); keyboardCapture.blur(); screenBox.blur(); workspace.hidden = true; loginSection.hidden = false; $('connection').textContent = 'Sign-in required'; $('connection').classList.remove('online'); ws?.close(); ws = null; }
 function showWorkspace() { loginSection.hidden = true; workspace.hidden = false; connect(); refresh(); }
 async function refresh() {
   try {
@@ -22,7 +22,9 @@ async function refresh() {
     mine = Boolean(status.mine);
     $('device-status').textContent = `${status.emulator} · ${status.lease ? status.lease + ' control' : 'available'}`;
     $('connection').textContent = status.emulator === 'online' ? 'Online' : status.emulator;
+    $('connection').classList.toggle('online', status.emulator === 'online');
     $('lease-btn').textContent = mine ? 'Release control' : 'Take control';
+    $('input-help').hidden = mine;
     document.querySelectorAll<HTMLButtonElement>('[data-key],#rotate,#finger-match,#finger-reject,#camera-form button,#camera-reset,#text-form button').forEach(b => b.disabled = !mine);
     $<HTMLButtonElement>('keyboard-btn').disabled = !mine;
     if (!mine && screenBox.contains(document.activeElement)) { keyboardCapture.blur(); screenBox.blur(); }
@@ -264,18 +266,19 @@ async function loadCapabilities() {
   renderPayload();
   void loadApps();
   try {
-    capabilityData = await api('/api/capabilities');
-    renderValues('required-caps', capabilityData.required, {
+    const data: Capabilities = await api('/api/capabilities');
+    capabilityData = data;
+    renderValues('required-caps', data.required, {
       platformName: 'Required by Appium; pinned to Android.',
       'appium:automationName': 'Required by Appium; pinned to UiAutomator2.',
       'appium:udid': 'Pinned by this gateway to the hosted emulator.'
     });
-    renderValues('default-caps', capabilityData.defaults, {
+    renderValues('default-caps', data.defaults, {
       'appium:noReset': 'Keeps app data across sessions unless your test requests a reset.',
       'appium:newCommandTimeout': 'Ends an inactive Appium session after this many seconds.'
     });
-    $('capability-count').textContent = `${capabilityData.entries.length} capabilities`;
-    $('catalog-source').textContent = `From installed UiAutomator2 driver ${capabilityData.driverVersion}. Select an item to read its description.`;
+    $('capability-count').textContent = `${data.entries.length} capabilities`;
+    $('catalog-source').textContent = `From installed UiAutomator2 driver ${data.driverVersion}. Select an item to read its description.`;
     renderCatalog(); renderPayload();
   } catch (error) { $('capability-count').textContent = 'Unavailable'; $('catalog-source').textContent = `Could not load capability reference: ${String(error)}`; }
 }

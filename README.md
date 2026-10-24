@@ -1,5 +1,7 @@
 # Android Emulator Gateway
 
+This is an independent project. It is not affiliated with, endorsed by, or connected to MB Bank.
+
 This gateway hosts the `Pixel_10_Android_17` AVD on this Windows PC. Browser users can view and control it; CI can run Appium UiAutomator2 sessions. One controller holds the device at a time. App data persists between runs.
 
 ## Open it

@@ -7,14 +7,18 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <header><div><strong>Android Gateway</strong><span>Pixel 10 · Android 17</span></div><span id="connection" class="badge">Connecting</span></header>
+  <header><a class="wordmark" href="/">ANDROID<span>GATEWAY</span></a><div class="header-meta"><span>Development environment</span><span id="connection" class="badge">Connecting</span></div></header>
   <main>
-    <section id="login" class="card login-card">
+    <section id="login" class="auth-layout">
+      <div class="auth-intro"><p class="eyebrow">ANDROID GATEWAY</p><h2>Shared Android emulator</h2><p>View the device, take control, or connect your Appium tests.</p><span>Pixel 10 · Android 17</span></div>
+      <div class="login-card">
       <h1>Sign in</h1><p>Control your Android emulator from this browser.</p>
-      <form id="login-form"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required><button type="submit">Sign in</button></form>
-      <p id="login-error" class="error"></p>
+      <form id="login-form"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" aria-describedby="login-error" required><button type="submit">Sign in</button></form>
+      <p id="login-error" class="error" role="alert"></p>
+      </div>
     </section>
     <section id="workspace" hidden>
+      <div class="page-heading"><div><p class="eyebrow">DEVICE WORKSPACE</p><h1>Android emulator</h1><p>Pixel 10 <span class="separator">/</span> Android 17 <span class="separator">/</span> emulator-5554</p></div><button id="logout" class="quiet">Sign out</button></div>
       <nav class="view-tabs" role="tablist" aria-label="Gateway views">
         <button id="device-tab" class="active" role="tab" aria-selected="true" aria-controls="device-view">Device</button>
         <button id="capabilities-tab" role="tab" aria-selected="false" aria-controls="capabilities-view">Appium capabilities</button>
@@ -23,18 +27,17 @@
       <div class="grid">
         <div class="screen-column">
           <div class="screen-top"><div><strong>Live device</strong><span id="device-status">Checking status…</span></div><button id="lease-btn">Take control</button></div>
-          <div id="screen-box" tabindex="0" aria-label="Android screen. Click to type with your keyboard; press Escape to leave keyboard control."><img id="screen" alt="Live Android screen" draggable="false"><span id="screen-placeholder">Waiting for the emulator stream…</span><textarea id="keyboard-capture" aria-label="Direct Android keyboard input" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea><button id="keyboard-btn" type="button" disabled>⌨ Keyboard</button></div>
+          <div id="screen-box" tabindex="0" aria-label="Android screen. Click to type with your keyboard; press Escape to leave keyboard control."><img id="screen" alt="Live Android screen" draggable="false"><span id="screen-placeholder">Waiting for the emulator stream…</span><textarea id="keyboard-capture" aria-label="Direct Android keyboard input" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea><button id="keyboard-btn" type="button" disabled>Keyboard</button></div>
           <div class="key-row"><button data-key="BACK">Back</button><button data-key="HOME">Home</button><button id="rotate">Rotate</button><button id="screenshot">Screenshot</button></div>
         </div>
         <aside>
-          <div class="card"><h2>Input</h2><p>Tap an Android text field and type directly. On a phone, use Keyboard if the on-screen keyboard does not open. Press Esc to return keyboard focus to your browser.</p><form id="text-form"><input id="text-input" placeholder="Text to type" maxlength="2000"><button type="submit">Type</button></form><div class="key-row compact"><button data-key="POWER">Power</button><button data-key="VOLUME_DOWN">Vol −</button><button data-key="VOLUME_UP">Vol +</button></div></div>
+          <div class="card"><h2>Input</h2><p>Tap a text field to type. On mobile, use Keyboard. Press Esc to return to your browser.</p><form id="text-form"><input id="text-input" aria-label="Text to type" aria-describedby="input-help" placeholder="Text to type" maxlength="2000"><button type="submit">Type</button></form><p id="input-help">Take control to send text.</p><div class="key-row compact"><button data-key="POWER">Power</button><button data-key="VOLUME_DOWN">Vol −</button><button data-key="VOLUME_UP">Vol +</button></div></div>
           <div class="card"><h2>Fingerprint</h2><p>Enroll fingerprint ID 1 in Android Settings before testing a match.</p><div class="key-row compact"><button id="finger-match">Match ID 1</button><button id="finger-reject">Reject ID 9999</button></div></div>
-          <div class="card"><h2>Rear camera</h2><p>Upload a PNG, JPEG, or video. Applying it restarts the emulator and keeps its data.</p><form id="camera-form"><input id="camera-file" type="file" accept="image/png,image/jpeg,video/*" required><button type="submit">Apply camera feed</button></form><button id="camera-reset" class="quiet">Use default camera</button></div>
+          <div class="card"><h2>Rear camera</h2><p>Upload a PNG, JPEG, or video. Applying it restarts the emulator and keeps its data.</p><form id="camera-form"><label class="file-label" for="camera-file">PNG, JPEG or video · up to 250 megabytes</label><input id="camera-file" type="file" accept="image/png,image/jpeg,video/*" required><button type="submit">Apply camera feed</button></form><button id="camera-reset" class="quiet">Use default camera</button></div>
           <div class="card"><h2>Audio</h2><button id="audio-btn">Enable speaker audio</button><p>Audio plays only while this page is open.</p></div>
-          <button id="logout" class="quiet">Sign out</button>
         </aside>
       </div>
-      <p id="notice" role="status"></p>
+      <p id="notice" class="notice" role="status"></p>
       </section>
       <section id="capabilities-view" role="tabpanel" aria-labelledby="capabilities-tab" hidden>
         <div class="capabilities-heading"><div><h1>Appium capabilities</h1><p>Build a session request for this emulator and inspect every capability documented by the installed UiAutomator2 driver.</p></div><span id="capability-count" class="badge">Loading…</span></div>
@@ -42,22 +45,23 @@
           <div class="card"><h2>Required on this gateway</h2><p>These values are pinned when a WebDriver session starts.</p><div id="required-caps" class="cap-values"></div></div>
           <div class="card"><h2>Default behavior</h2><p>These values apply unless your test explicitly overrides them.</p><div id="default-caps" class="cap-values"></div></div>
         </div>
-        <div class="card"><h2>Connect automation</h2><p>Use <code id="webdriver-url"></code> as your Appium server URL. Send <code>Authorization: Bearer &lt;token&gt;</code> on every request. The token changes at midnight Bangkok time; request the new one for each day.</p>
+        <div class="card"><h2>Connect automation</h2><p>Use <code id="webdriver-url"></code> as your Appium server URL. Send <code>Authorization: Bearer &lt;token&gt;</code> on every request. The token resets at midnight Bangkok time. Request a new one each day.</p>
           <form id="ci-token-form"><label for="ci-password">Browser sign-in password</label><div class="ci-token-request"><input id="ci-password" type="password" autocomplete="off" required><button type="submit">Get today's CI token</button></div></form>
           <p id="ci-token-error" class="error" role="alert"></p>
           <div id="ci-token-result" hidden><label for="ci-token-value">Today's CI token</label><div class="ci-token-request"><input id="ci-token-value" type="password" readonly><button id="ci-token-reveal" type="button">Show</button><button id="ci-token-copy" type="button">Copy token</button></div><p id="ci-token-expiry"></p><p id="ci-token-copy-status" role="status"></p></div>
         </div>
-        <div class="card"><h2>Focus an installed app</h2><p>Select a launchable app already on this emulator. Its package and launcher activity are added to the session request below. The request also launches the selected app when a session begins while keeping its data. Choosing an app here does not start a test or change the device.</p>
+        <div class="card"><h2>Focus an installed app</h2><p>Select a launchable app already on this emulator. Its package and launcher activity are added to the session request below. The session launches this app on start without clearing its data. Choosing an app here does not start a test or change the device.</p>
           <div class="app-picker"><select id="focus-app" aria-label="App to focus"><option value="">Home screen (no app focus)</option></select><button id="refresh-apps" type="button">Refresh apps</button></div>
           <p id="app-list-status" role="status">Loading installed apps…</p>
           <div id="focus-details" class="focus-details" hidden></div>
         </div>
         <div class="card"><div class="section-heading"><div><h2>Session request</h2><p>Send this JSON to <code>/webdriver/session</code> with your CI bearer token.</p></div><button id="copy-caps" type="button">Copy JSON</button></div><pre id="capabilities-json" class="json-block"></pre><p id="copy-status" role="status"></p></div>
-        <div class="card"><div class="section-heading"><div><h2>All UiAutomator2 capabilities</h2><p id="catalog-source">From the installed driver reference.</p></div><a href="https://github.com/appium/appium-uiautomator2-driver#capabilities" target="_blank" rel="noopener noreferrer">Driver docs ↗</a></div>
+        <div class="card"><div class="section-heading"><div><h2>All UiAutomator2 capabilities</h2><p id="catalog-source">From the installed driver reference.</p></div><a href="https://github.com/appium/appium-uiautomator2-driver#capabilities" target="_blank" rel="noopener noreferrer">Driver docs</a></div>
           <label for="capability-search">Search capabilities</label><input id="capability-search" type="search" placeholder="Name, category, or description"><div id="capability-list" class="capability-list"></div>
         </div>
       </section>
     </section>
+    <footer>Android Gateway</footer>
   </main>
   <script type="module" src="/app.js"></script>
 </body>
