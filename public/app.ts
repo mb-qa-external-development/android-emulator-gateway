@@ -174,6 +174,7 @@ function clearCiToken() {
   $('ci-token-result').hidden = true;
 }
 $('webdriver-url').textContent = `${location.origin}/webdriver`;
+$('session-url').textContent = `${location.origin}/webdriver/session`;
 $<HTMLFormElement>('ci-token-form').onsubmit = async event => {
   event.preventDefault();
   const password = $<HTMLInputElement>('ci-password');
@@ -235,10 +236,21 @@ function renderPayload() {
     values['appium:appActivity'] = app.activity;
     values['appium:forceAppLaunch'] = true;
   }
-  $('capabilities-json').textContent = JSON.stringify({ capabilities: { alwaysMatch: values, firstMatch: [{}] } }, null, 2);
+  $('client-caps-json').textContent = JSON.stringify(values, null, 2);
+  const requestBody = JSON.stringify({ capabilities: { alwaysMatch: values, firstMatch: [{}] } }, null, 2);
+  $('capabilities-json').textContent = requestBody;
+  $('request-example').textContent = [
+    '$headers = @{ Authorization = "Bearer $env:GATEWAY_CI_TOKEN" }',
+    "$body = @'",
+    requestBody,
+    "'@",
+    `Invoke-RestMethod -Method Post -Uri '${location.origin}/webdriver/session' -Headers $headers -ContentType 'application/json' -Body $body`,
+  ].join('\n');
   const details = $('focus-details'); details.hidden = !app;
   if (app) details.textContent = `Package: ${app.packageName}    Launch activity: ${app.activity}`;
   $('copy-status').textContent = '';
+  $('body-copy-status').textContent = '';
+  $('request-copy-status').textContent = '';
 }
 function renderCatalog() {
   const list = $('capability-list'); list.replaceChildren();
@@ -296,7 +308,15 @@ $('refresh-apps').onclick = () => void loadApps();
 $<HTMLSelectElement>('focus-app').onchange = renderPayload;
 $<HTMLInputElement>('capability-search').oninput = renderCatalog;
 $('copy-caps').onclick = async () => {
-  try { await navigator.clipboard.writeText($('capabilities-json').textContent || ''); $('copy-status').textContent = 'Session request copied.'; }
+  try { await navigator.clipboard.writeText($('client-caps-json').textContent || ''); $('copy-status').textContent = 'Client capabilities copied.'; }
   catch { $('copy-status').textContent = 'Copy failed. Select and copy the JSON above.'; }
+};
+$('copy-body').onclick = async () => {
+  try { await navigator.clipboard.writeText($('capabilities-json').textContent || ''); $('body-copy-status').textContent = 'Session request body copied.'; }
+  catch { $('body-copy-status').textContent = 'Copy failed. Select and copy the JSON above.'; }
+};
+$('copy-request').onclick = async () => {
+  try { await navigator.clipboard.writeText($('request-example').textContent || ''); $('request-copy-status').textContent = 'Request copied.'; }
+  catch { $('request-copy-status').textContent = 'Copy failed. Select and copy the example above.'; }
 };
 api('/api/status').then(showWorkspace).catch(showLogin);

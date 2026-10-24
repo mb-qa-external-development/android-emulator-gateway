@@ -45,7 +45,9 @@
           <div class="card"><h2>Required on this gateway</h2><p>These values are pinned when a WebDriver session starts.</p><div id="required-caps" class="cap-values"></div></div>
           <div class="card"><h2>Default behavior</h2><p>These values apply unless your test explicitly overrides them.</p><div id="default-caps" class="cap-values"></div></div>
         </div>
-        <div class="card"><h2>Connect automation</h2><p>Use <code id="webdriver-url"></code> as your Appium server URL. Send <code>Authorization: Bearer &lt;token&gt;</code> on every request. The token resets at midnight Bangkok time. Request a new one each day.</p>
+        <div class="card"><h2>Connect automation</h2><p>Use these values in your Appium client. Include the bearer header on session creation and every later WebDriver command.</p>
+          <div class="connection-values"><div><strong>Appium server URL</strong><code id="webdriver-url"></code></div><div><strong>Create session</strong><code id="session-url"></code></div><div><strong>HTTP header on every request</strong><code>Authorization: Bearer &lt;today's CI token&gt;</code></div></div>
+          <p>The gateway accepts one Appium session or one browser controller at a time. Delete the session when your test ends. The token changes at midnight Bangkok time; fetch a new token for commands after midnight.</p>
           <form id="ci-token-form"><label for="ci-password">Browser sign-in password</label><div class="ci-token-request"><input id="ci-password" type="password" autocomplete="off" required><button type="submit">Get today's CI token</button></div></form>
           <p id="ci-token-error" class="error" role="alert"></p>
           <div id="ci-token-result" hidden><label for="ci-token-value">Today's CI token</label><div class="ci-token-request"><input id="ci-token-value" type="password" readonly><button id="ci-token-reveal" type="button">Show</button><button id="ci-token-copy" type="button">Copy token</button></div><p id="ci-token-expiry"></p><p id="ci-token-copy-status" role="status"></p></div>
@@ -55,7 +57,10 @@
           <p id="app-list-status" role="status">Loading installed apps…</p>
           <div id="focus-details" class="focus-details" hidden></div>
         </div>
-        <div class="card"><div class="section-heading"><div><h2>Session request</h2><p>Send this JSON to <code>/webdriver/session</code> with your CI bearer token.</p></div><button id="copy-caps" type="button">Copy JSON</button></div><pre id="capabilities-json" class="json-block"></pre><p id="copy-status" role="status"></p></div>
+        <div class="card"><div class="section-heading"><div><h2>Client capabilities</h2><p>Pass this capability object to your Appium client's options or capabilities API. The gateway pins the required values above.</p></div><button id="copy-caps" type="button">Copy capabilities</button></div><pre id="client-caps-json" class="json-block"></pre><p id="copy-status" role="status"></p>
+          <div class="section-heading request-heading"><div><h3>W3C session request body</h3><p>For direct HTTP clients, send this JSON to the create-session endpoint above.</p></div><button id="copy-body" type="button">Copy body</button></div><pre id="capabilities-json" class="json-block"></pre><p id="body-copy-status" role="status"></p>
+          <div class="section-heading request-heading"><div><h3>Complete HTTP example</h3><p>Set <code>GATEWAY_CI_TOKEN</code> to today's token in your test environment. This example creates a session; reuse the bearer header for every command.</p></div><button id="copy-request" type="button">Copy request</button></div><pre id="request-example" class="json-block"></pre><p id="request-copy-status" role="status"></p>
+        </div>
         <div class="card"><div class="section-heading"><div><h2>All UiAutomator2 capabilities</h2><p id="catalog-source">From the installed driver reference.</p></div><a href="https://github.com/appium/appium-uiautomator2-driver#capabilities" target="_blank" rel="noopener noreferrer">Driver docs</a></div>
           <label for="capability-search">Search capabilities</label><input id="capability-search" type="search" placeholder="Name, category, or description"><div id="capability-list" class="capability-list"></div>
         </div>

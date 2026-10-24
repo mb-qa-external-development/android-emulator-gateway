@@ -97,6 +97,13 @@ form button { margin-top: 10px; }
 .cap-value small { grid-column: 1/-1; color: var(--muted); }
 code { font-size: var(--text-xs); overflow-wrap: anywhere; }
 #webdriver-url { color: var(--blue-hover); }
+.connection-values { display: grid; gap: 0; margin: 18px 0; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.connection-values > div { display: grid; grid-template-columns: 190px minmax(0,1fr); gap: 12px; align-items: start; padding: 12px 14px; }
+.connection-values > div + div { border-top: 1px solid var(--line); }
+.connection-values strong { font-size: var(--text-xs); }
+.connection-values code { color: var(--blue-hover); user-select: all; }
+.request-heading { margin: 30px 0 12px; }
+.request-heading h3 { margin: 0; }
 .ci-token-request,.app-picker { display: flex; gap: 10px; align-items: center; }
 .ci-token-request input,.app-picker select { flex: 1; }
 .ci-token-request button,.card .ci-token-request button { width: auto; margin: 0; white-space: nowrap; }
@@ -145,6 +152,7 @@ footer { padding: 32px 0; color: var(--muted); font-size: var(--text-xs); }
   .key-row button { font-size: 11px; padding: 8px 4px; }
   .capabilities-heading,.section-heading { flex-direction: column; gap: 8px; }
   .ci-token-request,.app-picker { flex-wrap: wrap; }
+  .connection-values > div { grid-template-columns: 1fr; gap: 4px; }
   .ci-token-request input,.app-picker select { flex-basis: 100%; }
   .ci-token-request button { flex: 1; }
   .json-block { padding: 16px; font-size: 11px; }
