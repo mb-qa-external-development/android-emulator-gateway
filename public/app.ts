@@ -95,7 +95,17 @@ screenBox.addEventListener('contextmenu', event => event.preventDefault());
 screen.addEventListener('mousedown', event => event.preventDefault());
 function pointer(e: PointerEvent, pressed: boolean) {
   const rect = screen.getBoundingClientRect();
-  send({ type: 'touch', x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height, down: pressed });
+  const style = getComputedStyle(screen);
+  const left = parseFloat(style.borderLeftWidth) || 0;
+  const right = parseFloat(style.borderRightWidth) || 0;
+  const top = parseFloat(style.borderTopWidth) || 0;
+  const bottom = parseFloat(style.borderBottomWidth) || 0;
+  send({
+    type: 'touch',
+    x: (e.clientX - rect.left - left) / (rect.width - left - right),
+    y: (e.clientY - rect.top - top) / (rect.height - top - bottom),
+    down: pressed,
+  });
 }
 screen.onpointerdown = e => { e.preventDefault(); if (!mine || e.button !== 0) return; screenBox.focus({ preventScroll: true }); down = true; lastMoveAt = 0; screen.setPointerCapture(e.pointerId); pointer(e, true); };
 screen.onpointermove = e => { if (down) { e.preventDefault(); if (performance.now() - lastMoveAt >= 33) { lastMoveAt = performance.now(); pointer(e, true); } } };
