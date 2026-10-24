@@ -1,0 +1,22 @@
+node_modules/
+dist/
+public/app.js
+
+# Local configuration and runtime state
+.env
+.env.*
+!.env.example
+work/
+gateway-data/
+android-sdk/
+state.json
+initial-password.txt
+initial-ci-token.txt
+*.log
+
+# Editor and OS files
+.idea/
+.vscode/
+*.code-workspace
+.DS_Store
+Thumbs.db
