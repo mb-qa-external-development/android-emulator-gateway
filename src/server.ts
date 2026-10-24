@@ -199,20 +199,33 @@ wss.on('connection', (ws: WebSocket, req: Request) => {
   if (!id) return ws.close();
   emulator.addViewer(ws);
   const authCheck = setInterval(() => { if (!browserSession(req)) ws.close(1008, 'session expired'); }, 2500);
-  let inputQueue = Promise.resolve();
+  const inputQueue: any[] = [];
+  let drainingInput = false;
+  async function drainInput() {
+    drainingInput = true;
+    while (inputQueue.length) {
+      const msg = inputQueue.shift();
+      try {
+        if (!browserSession(req) || !renew('manual', id!)) continue;
+        if (msg.type === 'touch' && Number.isFinite(msg.x) && Number.isFinite(msg.y)) await emulator.touch(Math.max(0, Math.min(1, msg.x)), Math.max(0, Math.min(1, msg.y)), msg.down ? 100 : 0);
+        if (msg.type === 'key' && typeof msg.key === 'string' && msg.key.length < 32) await emulator.key(msg.key);
+        if (msg.type === 'text' && typeof msg.text === 'string' && msg.text.length <= 2000) await emulator.text(msg.text);
+        if (msg.type === 'fingerprint' && Number.isInteger(msg.id) && msg.id >= 0 && msg.id <= 9999) await emulator.fingerprint(msg.id, Boolean(msg.down));
+      } catch (error) { if (ws.readyState === ws.OPEN) ws.send(JSON.stringify({ type: 'error', message: String(error) })); }
+    }
+    drainingInput = false;
+  }
   ws.on('message', raw => {
     try {
       if (!browserSession(req)) return ws.close(1008, 'session expired');
       const msg = JSON.parse(raw.toString());
       if (msg.type === 'frame-ack') { emulator.frameDisplayed(ws); return; }
       if (msg.type === 'audio') { emulator.setAudio(ws, msg.enabled === true); return; }
-      inputQueue = inputQueue.then(async () => {
-        if (!browserSession(req) || !renew('manual', id)) return;
-        if (msg.type === 'touch' && Number.isFinite(msg.x) && Number.isFinite(msg.y)) await emulator.touch(Math.max(0, Math.min(1, msg.x)), Math.max(0, Math.min(1, msg.y)), msg.down ? 100 : 0);
-        if (msg.type === 'key' && typeof msg.key === 'string' && msg.key.length < 32) await emulator.key(msg.key);
-        if (msg.type === 'text' && typeof msg.text === 'string' && msg.text.length <= 2000) await emulator.text(msg.text);
-        if (msg.type === 'fingerprint' && Number.isInteger(msg.id) && msg.id >= 0 && msg.id <= 9999) await emulator.fingerprint(msg.id, Boolean(msg.down));
-      }).catch(error => { if (ws.readyState === ws.OPEN) ws.send(JSON.stringify({ type: 'error', message: String(error) })); });
+      if (!['touch', 'key', 'text', 'fingerprint'].includes(msg.type)) return;
+      const last = inputQueue.at(-1);
+      if (msg.type === 'touch' && msg.phase === 'move' && last?.type === 'touch' && last.phase === 'move') inputQueue[inputQueue.length - 1] = msg;
+      else if (inputQueue.length < 128 || msg.type === 'touch' && msg.phase === 'up') inputQueue.push(msg);
+      if (!drainingInput) void drainInput();
     } catch (e) { ws.send(JSON.stringify({ type: 'error', message: String(e) })); }
   });
   ws.on('close', () => { clearInterval(authCheck); emulator.removeViewer(ws); });

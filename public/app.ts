@@ -54,7 +54,7 @@ function connect() {
       const previous = currentUrl;
       const displayed = () => {
         if (previous) URL.revokeObjectURL(previous);
-        requestAnimationFrame(() => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'frame-ack' })); });
+        if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'frame-ack' }));
       };
       screen.onload = displayed;
       screen.onerror = displayed;
@@ -93,7 +93,7 @@ screenBox.addEventListener('dragstart', event => event.preventDefault());
 screenBox.addEventListener('selectstart', event => event.preventDefault());
 screenBox.addEventListener('contextmenu', event => event.preventDefault());
 screen.addEventListener('mousedown', event => event.preventDefault());
-function pointer(e: PointerEvent, pressed: boolean) {
+function pointer(e: PointerEvent, phase: 'down' | 'move' | 'up') {
   const rect = screen.getBoundingClientRect();
   const style = getComputedStyle(screen);
   const left = parseFloat(style.borderLeftWidth) || 0;
@@ -104,13 +104,13 @@ function pointer(e: PointerEvent, pressed: boolean) {
     type: 'touch',
     x: (e.clientX - rect.left - left) / (rect.width - left - right),
     y: (e.clientY - rect.top - top) / (rect.height - top - bottom),
-    down: pressed,
+    down: phase !== 'up', phase,
   });
 }
-screen.onpointerdown = e => { e.preventDefault(); if (!mine || e.button !== 0) return; screenBox.focus({ preventScroll: true }); down = true; lastMoveAt = 0; screen.setPointerCapture(e.pointerId); pointer(e, true); };
-screen.onpointermove = e => { if (down) { e.preventDefault(); if (performance.now() - lastMoveAt >= 33) { lastMoveAt = performance.now(); pointer(e, true); } } };
-screen.onpointerup = e => { if (down) { e.preventDefault(); pointer(e, false); down = false; if (remoteTextFocused && matchMedia('(pointer: coarse)').matches) openKeyboard(); } };
-screen.onpointercancel = e => { if (down) { e.preventDefault(); pointer(e, false); down = false; } };
+screen.onpointerdown = e => { e.preventDefault(); if (!mine || e.button !== 0) return; screenBox.focus({ preventScroll: true }); down = true; lastMoveAt = 0; screen.setPointerCapture(e.pointerId); pointer(e, 'down'); };
+screen.onpointermove = e => { if (down) { e.preventDefault(); if (performance.now() - lastMoveAt >= 33) { lastMoveAt = performance.now(); pointer(e, 'move'); } } };
+screen.onpointerup = e => { if (down) { e.preventDefault(); pointer(e, 'up'); down = false; if (remoteTextFocused && matchMedia('(pointer: coarse)').matches) openKeyboard(); } };
+screen.onpointercancel = e => { if (down) { e.preventDefault(); pointer(e, 'up'); down = false; } };
 $('keyboard-btn').onclick = openKeyboard;
 const directKeys = new Set(['Backspace', 'Delete', 'Enter', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 screenBox.addEventListener('keydown', event => {
@@ -141,7 +141,12 @@ keyboardCapture.addEventListener('input', event => { if (!composing && !(event a
 keyboardCapture.addEventListener('compositionstart', () => { composing = true; });
 keyboardCapture.addEventListener('compositionend', () => { composing = false; window.setTimeout(flushKeyboard, 0); });
 $<HTMLFormElement>('text-form').onsubmit = e => { e.preventDefault(); const input = $<HTMLInputElement>('text-input'); if (input.value) send({ type: 'text', text: input.value }); input.value = ''; };
-document.querySelectorAll<HTMLButtonElement>('[data-key]').forEach(button => button.onclick = async () => { try { await api('/api/device-key', 'POST', { key: button.dataset.key }); } catch (e) { notice(String(e)); } });
+const fastKeys: Record<string, string> = { HOME: 'GoHome', BACK: 'GoBack', POWER: 'Power' };
+document.querySelectorAll<HTMLButtonElement>('[data-key]').forEach(button => button.onclick = async () => {
+  const key = button.dataset.key || '';
+  if (fastKeys[key]) { send({ type: 'key', key: fastKeys[key] }); return; }
+  try { await api('/api/device-key', 'POST', { key }); } catch (e) { notice(String(e)); }
+});
 $('rotate').onclick = async () => { rotation = (rotation + 1) % 4; try { await api('/api/rotate', 'POST', { rotation }); } catch (e) { notice(String(e)); } };
 async function finger(id: number) { send({ type: 'fingerprint', id, down: true }); setTimeout(() => send({ type: 'fingerprint', id, down: false }), 180); }
 $('finger-match').onclick = () => finger(1); $('finger-reject').onclick = () => finger(9999);

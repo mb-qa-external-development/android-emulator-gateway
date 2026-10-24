@@ -36,6 +36,8 @@ export class EmulatorBridge {
   private frameReady = new Map<WebSocket, boolean>();
   private audioClients = new Set<WebSocket>();
   private encoding = false;
+  private pendingFrame: any = null;
+  private frameTimer: NodeJS.Timeout | null = null;
   private lastFrame = 0;
   private frameId = 0;
   private sentFrame = new Map<WebSocket, number>();
@@ -58,7 +60,9 @@ export class EmulatorBridge {
       return;
     }
     this.screenStream?.cancel(); this.audioStream?.cancel(); this.notificationStream?.cancel(); this.client?.close();
-    this.screenStream = null; this.audioStream = null; this.notificationStream = null; this.lastImage = null;
+    this.screenStream = null; this.audioStream = null; this.notificationStream = null; this.lastImage = null; this.pendingFrame = null;
+    if (this.frameTimer) clearTimeout(this.frameTimer);
+    this.frameTimer = null;
     this.client = null; this.connected = false; this.identity = identity; this.textFocused = false;
     for (const ws of this.clients) if (ws.readyState === ws.OPEN) ws.send(JSON.stringify({ type: 'text-focus', focused: false }));
     if (!d) return;
@@ -85,17 +89,22 @@ export class EmulatorBridge {
     stream.on('error', () => { if (this.notificationStream === stream) this.notificationStream = null; });
     stream.on('end', () => { if (this.notificationStream === stream) this.notificationStream = null; });
   }
-  private startScreen() {
-    this.screenStream = this.client.streamScreenshot({ format: 'RGB888', width: 720 }, this.metadata);
-    this.screenStream.on('data', async (frame: any) => {
-      if (!this.loggedFrame) { console.log('first frame', { width: frame.format?.width, height: frame.format?.height, bytes: frame.image?.length, format: frame.format?.format }); this.loggedFrame = true; }
-      if (this.clients.size === 0 || this.encoding || Date.now() - this.lastFrame < 83 || !frame.image?.length) return;
-      const width = Number(frame.format?.width || frame.width);
-      const height = Number(frame.format?.height || frame.height);
-      if (!width || !height || frame.image.length !== width * height * 3) return;
-      this.encoding = true; this.lastFrame = Date.now();
+  private flushFrame() {
+    if (!this.pendingFrame || this.encoding || ![...this.clients].some(ws => this.frameReady.get(ws) && ws.readyState === ws.OPEN && ws.bufferedAmount < 64_000)) return;
+    const delay = 50 - (Date.now() - this.lastFrame);
+    if (delay > 0) {
+      if (!this.frameTimer) this.frameTimer = setTimeout(() => { this.frameTimer = null; this.flushFrame(); }, delay);
+      return;
+    }
+    const frame = this.pendingFrame;
+    this.pendingFrame = null;
+    const width = Number(frame.format?.width || frame.width);
+    const height = Number(frame.format?.height || frame.height);
+    if (!width || !height || frame.image.length !== width * height * 3) return;
+    this.encoding = true; this.lastFrame = Date.now();
+    void (async () => {
       try {
-        const jpeg = await sharp(frame.image, { raw: { width, height, channels: 3 } }).resize({ width: 720, withoutEnlargement: true }).jpeg({ quality: 65 }).toBuffer();
+        const jpeg = await sharp(frame.image, { raw: { width, height, channels: 3 } }).jpeg({ quality: 60 }).toBuffer();
         this.lastImage = jpeg;
         this.frameId++;
         for (const ws of this.clients) this.sendFrame(ws);
@@ -103,7 +112,16 @@ export class EmulatorBridge {
         this.width = rotation % 2 ? 2424 : 1080;
         this.height = rotation % 2 ? 1080 : 2424;
       } catch (error) { console.error('frame encoding:', error); }
-      finally { this.encoding = false; }
+      finally { this.encoding = false; this.flushFrame(); }
+    })();
+  }
+  private startScreen() {
+    this.screenStream = this.client.streamScreenshot({ format: 'RGB888', width: 540 }, this.metadata);
+    this.screenStream.on('data', (frame: any) => {
+      if (!this.loggedFrame) { console.log('first frame', { width: frame.format?.width, height: frame.format?.height, bytes: frame.image?.length, format: frame.format?.format }); this.loggedFrame = true; }
+      if (this.clients.size === 0 || !frame.image?.length) return;
+      this.pendingFrame = frame;
+      this.flushFrame();
     });
     this.screenStream.on('error', (error: Error) => { if (this.clients.size) { console.error('screen stream:', error.message); this.connected = false; } });
     this.screenStream.on('end', () => { if (this.clients.size) this.connected = false; });
@@ -124,7 +142,7 @@ export class EmulatorBridge {
     this.sentFrame.set(ws, this.frameId);
     ws.send(Buffer.concat([Buffer.from([1]), this.lastImage]));
   }
-  frameDisplayed(ws: WebSocket) { this.frameReady.set(ws, true); this.sendFrame(ws); }
+  frameDisplayed(ws: WebSocket) { this.frameReady.set(ws, true); if (this.pendingFrame) this.flushFrame(); else this.sendFrame(ws); }
   setAudio(ws: WebSocket, enabled: boolean) {
     if (enabled) {
       this.audioClients.add(ws);
@@ -143,7 +161,7 @@ export class EmulatorBridge {
     if (this.lastImage) this.sendFrame(ws);
     else this.screenshot().then(async png => {
       if (ws.readyState !== ws.OPEN) return;
-      const jpeg = await sharp(png).resize({ width: 720, withoutEnlargement: true }).jpeg({ quality: 65 }).toBuffer();
+      const jpeg = await sharp(png).resize({ width: 540, withoutEnlargement: true }).jpeg({ quality: 60 }).toBuffer();
       this.lastImage = jpeg;
       this.frameId++;
       this.sendFrame(ws);
@@ -154,7 +172,7 @@ export class EmulatorBridge {
     this.frameReady.delete(ws);
     this.sentFrame.delete(ws);
     this.setAudio(ws, false);
-    if (!this.clients.size) { this.screenStream?.cancel(); this.audioStream?.cancel(); this.notificationStream?.cancel(); this.screenStream = null; this.audioStream = null; this.notificationStream = null; }
+    if (!this.clients.size) { this.screenStream?.cancel(); this.audioStream?.cancel(); this.notificationStream?.cancel(); this.screenStream = null; this.audioStream = null; this.notificationStream = null; this.pendingFrame = null; if (this.frameTimer) clearTimeout(this.frameTimer); this.frameTimer = null; }
   }
   private call(name: string, request: unknown): Promise<any> {
     return new Promise((resolve, reject) => {
